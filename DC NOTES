@@ -1,0 +1,1180 @@
+DC NOTES 
+
+25th Jan 6pm
+
+we are learning about different popular arch styles about distrbuted systems. We will get into the individual parts soon
+
+NFS architechture :
+eg; dropbox, gdrive apps, FTPs (implement NFS)
+- nfs server provides us a local view of the file system, we feel like files are in our system but they are actually not. 
+- local file interface is used to finally point to the file we see, need not be in our system but the pointer to the remote file is in our system
+- RPC client stub is used to fetch the files from servers at remote locations.
+
+Web server : a multi-tier arch
+- request goes via the cloud to the server (request handler)
+- process the request, may or maynot have database interaction.
+- processing fnishes and the response is sent back to the request handler in the server which sends the document back.
+
+- server side scripting : server can do some extra processing on the result obtained from the CGI process (WHAT IS A CGI PROCESS)
+
+layered arch :
+- Calls happen from layer n to n-1, using APIs. The guys who made layer n have no idea about how the layer n-1 works/functions. 
+
+- Layered arch is diff from multi tier architechture. Multi-layer but single tier : running on one systemsm. Two tiered : mostly client and server configs. the parts above the thinkline are the features on the client side, the parts below the thinkline are present on the server side
+
+	case3 : we move some part of the appliation to the frontend. Eg; we are filling a form and we fill in our state, the form brings up the ppossible states for us to choose from. Here some checks happen on the client side and the actual logic happens in the server side. 
+
+	case4 : entire computation occurs on the client and the database is remote. The PC needs to be resonably powerful. Eg; storing data in the cloud, example : apps on our phones, the data is stored on gcloud, gplay platform which is basically on the cloud
+
+	case5 : and so on
+
+Distributing the layers :
+
+1. vertical (layers are vertically stacked, client server) - multi-tier, with the think line diagram.
+			- layers are distibuted in multiple machines
+2. horizontal (both client and server are split into one device, device is replicated, becomes p2p) - part of client and server is one machine, where we have multiple machines
+	- We end up getting a peer-peer arch
+	- All machines may(structured) or maynot(un-structured) run identical things
+
+	- STRUCTURED P2P
+	- 1. HYPER-CUBE
+		- nodes follow a certain topology, queue, tree, whatever
+		- to store and retireve data efficiently
+		- we are basically building distributed hashing
+
+		- each node has a key(id, in trivial cases) and its corresponding value pair. in non-trivial cases; key needs to be calculated from the id given. The key then gives us the node number
+		- connections of each node are also well defined. (horizaontally; bits at the end change, vertically; bits in the middle change)
+
+		- Assume we have a key with us to store data, say 14. = 1110
+		- our request that gives us the data for 14 can reach any node, this request needs to travel to the node 14, which is done according to the rules of connections. The request then reaches the node 14
+		
+
+	- 2. CHORD (a ring topology)
+		- if we have a 'm' bit key, we have 2^m nodes 
+		- the nodes that are bold store the data, the nodes that are not bold are place holders(they dont store anything). So we have only 9 nodes in the picture that store some data.
+		- often used for distributed hash tables
+
+		- Once we get the key, we store the data at the smallest node whose id >= k. 
+		- Each node has some directed edges, called shortcuts. Each data node can have multiple shortcuts to and from itself. Shortcuts are decided based on some logic(in slides). Each data node can also hop to its next data node
+		- now if the req for node with key = 3 lands on node with key = 9. node9 then searches using among its shortcuts and neighbours; which node is farthest from itself but is still preceding the node3. It goes to 28, 28 does the same thing and goes to 1. One jumps to its neighbour 3. 28 has a shortcut to 4 but it doesnt choose it as there is a risk that we might miss the data with the jump.
+		- if the requets is directly for the data node(say 4,) the 28 will jump directly to 4 instead of 1.
+		- If we dont go the farthest one, the number of hops increase.
+
+		- logic of join and leaving of nodes is present in the slides.
+
+	- UNSTRUCTURED
+	1. 
+	- each node maintains a random of list of neighbours and probability
+	- Flooding : sending a req to all its neighbours. If v has seen the forward then it is ignored. If node v has this data, it forwards the data to its forwarder; basically performing backtracker until it reaches the node requesting for the data. Flooding is bad wrt networking, it is good when we need the data immediately while sacrificing other work happening on the same network.
+	- random walk : slides(), much more efficient when data is duplicated. Math in the slides. It is much slower but preferred due to efficiency. 
+
+======================================================================================================
+
+30th Jan
+
+Bit-torrent example : unstructured p2p
+	- much more flexibility
+	- weak peers can join and leave
+	- A file is broken and distributed into chunks, the locations of these chunks are stored in a torrent file, this torrent file is obtained when we perform a lookup, similar to a NFS lookup. the tracker in the torrent file searches for the chunks which are distributed and replicated across multiple nodes. 
+	- the moment we start donwlaodsing a chunk, it starts uploading the same file(some different piece of the chunk). If the ratio of upload: download crosses some limit then the connection breaks(in the slides)
+
+	- in actual DC, trackers are also distributed. Trackers are servers that search for the chunks.
+	- every node becomes a tracker for a small set of files. 
+	- The first tracker from where we get the initial link is called the magnet link, we dont talk to the initial tracker after we get the link, we then comms with the just the peers around it.
+
+Edge and Cloud arch : Hybrid arch :
+	- attempts are being made to perform partial computation at the edge node level instead of the cloud level to reduce response latencies.
+	- in the eg in the slide, each factory has mutliple edge nodes. The edge nodes are used to access the cloud, which is where the services(which are modules) come from and are offered to the clients(people using the edge nodes). These modules are solution specific and are controlled for the edge node using the service. 
+	- using edge nodes enhances security & privacy, reasons for cloud not being secure is not given in the textbook, its just said so to promote using edge devices. No formal proof for one being more secure than the other. Regulatory compliances is a big reason as to why data might not be moved to the cloud. 
+	- what is orchestration ? 
+
+PROCESS, VIRTUALIZATION, CLIENT AND SERVERS
+
+1. Processes
+- OS talks to the hardware using ISA, tow modes -> user and privileged.
+- virtualization is what biju spoke about while talking about abstracting the hardware away, same concept
+- slides contains some priv system level calls
+- the processor in the slides is a software level processor. during a CS, processor and process context both need to be saved. 
+- Threads are lightweight and the CS(context switch) can be done without using the OS, where for processes, every CS needs a trap. We can make any number of threads we want but its exec depends on the physical capabilities of your system. 
+- user and kernel level threads
+- client side threading
+	- generally multi threaded to perform operations parallely
+	- can perform multiple RPC calls
+- server side threading
+	- generally multi threaded to serve requests paralley to hide latencies
+	- dispatcher worker pattern. Dispatcher thread(generally using a queue) dispatches the work to worker threads which takes care of the requests. 
+
+- threads share address spaces unlike processes
+
+2. Virtualization
+- hypervisor is a thinlayer of OS over the H/W. All the VMs run on the same hypervisor. There is fully virtualised and para virtualised, where in fully : every call goes through the VMM, in para; some clls directly go to the H/W. There is also a case where the H/W is aware of the VMs prsent
+
+======================================================================================================
+1st Feb
+
+Kubernetes : Distributed computing infrastructure
+- Master slave, made up of control planes and workers. Control planes control the worker nodes; workers create pods. 
+- A pod is a group of >=1 container running together. 
+- Lets us orchestrate containerized engines.
+- RUnning all separate services (the amazon shopping page having multiple diff services example) in containers which all managed by kubernetes
+- Can it run from clouds/local Vms to manage ourselves
+
+Virtualisation vs Containerization
+	- Virtualization : slides in class
+	- Containerization 
+		- NO guest OS, Apps run on the base layer of OS and the container engine
+		- done using overlaying file systems and linux namespaces
+		- containerization removes the need for multiple guest OSes, leading to much lesser overhead. 
+
+
+- Nodes can be on prem/cloud
+Workers : host applications, containers. We can add control planes/workers as and when needed. The bare min is having one control plane and one worker. 
+
+- does having 2 different control planes mean having replication of same plane twice? -> not necessarily. They may or may not offer the same replica of services. It is also there for redudancy purpose, if one control plane dies then something else can take over.
+	- All control planes see all workers everytime, there is no hierarchy
+
+
+Control plane : Runs services to tell workers what to do. Contains multiple services. 
+	- can be run as linux services OR containers which run kubernetes, the grouping of services is done using namespaces. 
+
+
+	Services :
+	1. Scheduler : manages and loads pods on nodes, identifies the correct nodes to run certain pods. 
+		- it only decides which node to run the pods on, doesnt instantiate the pods. The instantiation is done by a kubelet
+
+	2. Controllers : Implement business logic, using controll loops to observe, orient, decide and act (OODA)
+		- We can build our own controllers
+		- Node controller : Manages and detects when the nodes become unavailable
+		- ReplicaSet controller : Determines if the desired number of a pod is running, recreates pods if number is lesser than ideal
+		- All high level behaviour is basically a controller
+
+	3. Controller manager : runs all other controllers in the cluster
+
+	3.1. Controllers : 
+		- monitor services/nodes and act in a certain way if there are any changes
+		- node controllers and replication controllers (from the slides)
+
+	4. ETCD cluster, a key-value database: Stores state of the cluster. 
+		- Master slave realtion between the ETCD instances in the control plane
+		- get, set, etc
+		- a cluster within kubernetes
+		• Stores information about nodes, pods, configs, secrets, accounts, roles, and bindings
+		• Returns data from the kubectl get commands
+
+		Configuring etcd clsuters
+
+		- generally have odd numbers of ETCD instances in a plane. => additional nodes to an odd node configuration reduces fault tolernace it seems
+	
+	5. API server : exposes the kubernetes API. Used for admin access and not for the apps running. Used by the adins to run/access the features of the control plane once its created
+		- anytime we (admins) make a kubectl cmmand, we are talking to the API. 
+		- kubelets talk with APIs
+		- when containers are up and runnigng, the workers and control planes dont comms through the API.   
+
+	6. Kubelet : present on each node in the cluster, needs to be manually installed on each node. 
+		- receives the data which is passed through the API to the ETCD to be stored. 
+		- runs on each node in the cluster
+		- listens to instructions from the API server when present in worker nodes
+		- does not need to run on control planes using linux services
+
+	- if we have multiple ETCD/ control planes with multiple ETCD, the consistency is maintained by RAFT, done in future lectures
+
+WORKER NODES
+	- host pods 
+	- designed to run workloads that build up applications
+	- have one or more containers within a pod. Generally is one container per pod. 
+	- A single pod will run on one node, its containers will not split on multiple node. But we can have multiple instances of a pod on multiple nodes, this is done by the "sched" in the control plane, i.e., one node can have multiple pods but one pod cannot be split into multiple nodes. 
+
+	- kube proxy : a way for pods to communicate with other pods in the cluster. Maintains network rules and allows/denies access while comms with pods. 
+-> control and worker planes are grouped in clusters : each control plane and worker has services and pods, pods run on nodes. pods have containers
+
+	- inside a pod, contaniers are managed using container runtime engines. 
+
+	- we can access singular pods within a worker using commands. We can also target specific workers. 
+	- kubelets in the worker node talks to the API server from the control plane. It will then talk to the container runtime engine and then perform the necessary action
+
+	- kubelets performs the actions and sends data to the node controller for the node controller to perform its functions in the control plane. All the heartbeats and everything which is the puporse of the node controller is transmitted through the kubelet in the worker nodes.
+
+	- kubelets can point to static paths, eg, during booting, it goes and reads a YAML file to then intialize the pods and the containers within it and so on.
+
+	- kproxy : runs on each node, gives rules for pods to communicate between each other. Maps ports on pods to comms using certain IP addresses and so on. 
+
+- slide 32,33 for execution pipeline
+
+KUBERNETES ADMIN INTERFACES
+- cli
+- gui
+- api calls, scripts, etc. 
+
+kubeconfig file is a collection of clusters. context and users 
+
+======================================================================================================
+6th Feb
+
+- impriving server side preformance by server side threading. Genereally done in dispatcher-worker pattern (slide 7). incming reuqest comes to one thread, this thread schedules other threads to work on this issue, the scheduling thread is the dispatcher and others are worker threads. 
+
+- Virtuaisation : making it look like something is present when it is not truly physically present for our use. Inside the hood there is a workaround to use the gievn feature instead of using the core version of the feature. 
+VMM or Hypervisor
+
+	Virtualization plays a key role in IaaS. Instead of renting out a physical
+	machine, a cloud provider will rent out a virtual machine (monitor) that
+	may, or may not, be sharing a physical machine with other customers. Isolation is neve complete as we are not sharing th physical resources, thus the perfromnce will be slower. 
+
+- when we are looking at an app running in a container vs a VM, the performance favors the cntainer but not by much. If this is an IO heavy application then the favor shifts largely towards conatainers and a visible difference in performance is noticed. There have been a lot of improvements and now there is no need for VMs to perform slower than conatiners runnning applications directly.
+
+- when running multiple appkications side by side, conatainers find it difficult to isolate and provide resources to each process in the way it is needed. 
+
+Properties it should have
+1. Equivalence : should have the samw result of execution as it would if there was no VMM
+2. Efficiency : the performance of the app remains the same more or less. A significant part of the machine instructions should be executed directly by the hardware without any VMM supervision, to make its execution comparable to the native achine execution
+3. Resource control : VMM should have the full control of the resources allocated 
+
+Additional properties
+1. Isolation: If one VM fails, it should not impact another VM running on the same VMM. Same for if one VM needs too much resources, it shouldnt impact other VMs in the environment. It is done using checkpointing
+2. Encapsulation : 
+	- availabilty : through live migration
+
+VMM is the layer interacting with the hardware. This Hypervisor should be able to control the h/w interrupts just like the normal OS does.
+VMs should not have direct access to hardware. Now the VMM is on level 0 and the guest OS is on level 1, the OS cannot exec any privileged instruction without VMMs knowledge. 
+	To exec these priv instr, there is a trap. The trap initialises a routine, depending on the trap and its state it invokes the right routine, to handle the trap, which is done by the VMM. 
+
+	There are some routines which change the machine resources and some that do. The ones that do are called sensitive instructions. 
+
+	- x86 is not fully virtualisable, the instruction 'popf' does not cause traps. The VMM will not know(means, it will not supervise the execution) that the VM is calling the popf instructions. 
+
+Binary transalaiton : conveting one machine code(source code; generally written in some ISA, say intel) to another machine's code (target binary code) form for the instructions to run on a different architechture. 
+	- slow due to conversion of code take multiple calls to the VMM
+	- os is modified to work best with direct access to h/w
+	- memory and page tables are managed by software instead of hardware, losing out on performance. VMM keeps sahed page tables to MMU to translate addresses.
+
+Why not transalte before the execution, that is, statically : intel ISA is CISC, data is mixed with instructions and instructions are of variable length and are complex. Only at runtime we know the instruction.
+	- We have no other choice but to transalte while its in execution (dynamic binary translation) - take a block, transalte it and keep it in cache to be executed. 
+
+	- SPC : source code program counter
+	- Transalator : translating a block of code(block : from Compiler Construction : if an instr enters the block, it will exit after executing the shole block, not jump out of it or exit the block in the middle)
+	- SPC is mapped to a TPC : target program counter. If the TPC is missing, use the SPC toread code from the Source program block, push that block in cache and add a mapping of TPC to that SPC to continue from that point. 	
+
+	- in the guest code transaltion code example, the red instructions try to change the control registers and are "harmful". black instructions are just copied as it is. The orange instructions are used for setting and reading interrupt flags, done using inline transaltion as they are "simple but slightly harmful". 
+
+Avoiding Trap-emulation (slides + joel) : helps in gaining speed
+	- replacing priv instructions with a callout, as trap-emulate is expensive
+	- Take the alterante and emulator routine from joel
+
+	- VMM performs simple translations in transaltion blocks
+	- for direct jumps and function calls, transfer contorl to transalated address
+	- For indirect jumps and function returns, use lookup() to convert guest OS address to a translated address
+	- For priv instructions, slides
+
+Overheads with virtualization -> slides 
+
+If we relax teh equivalnce condition : 
+	1. para-virtualization : modify the guest OS so that it knows that it is running on a VMM and not direct hardware. The guest OS makes the calls to VMM and the VMM executes it instead of the VMM intercepting the calls made by the OS and then executing
+
+	There is no binary transaltion here. 
+
+	We need to add an if condition saying, if (runnign om VMM) else {}. This makes the OS aware of the hyper visor. Gives a lot of performnce boost. But to do this, we need to modify the guest OS to work with the specific VMM. 
+
+	Priv instructions are replaced by "hypercalls" to the hypervisor, they are basically some exposed API calls for the OS to interact with.
+
+	If guest OS tries to make a priv instruction by itself, the VMM just crashes, making the code faster and simpler to write, faster to work with. 
+
+	There are some interrupts forwarded directly to the guest w/o the intervention of Xen. In other words, there is no hypercall for this. 
+
+Hardware assistance for virtualization : what intel did to its hardware, no BT
+	- slides
+	- all priv instructionsa re trapped to the VMM without using any code translation, these priv instructions can only be run in the VMM (VMX mode) 
+	- VM exit causes expensive context switching
+
+in hwat type of workload, is HW assisted virtualization and binary translation exec time is roughly the same : compute intensive, we dont need interrupts for multipe IO calls. Memory intensive tasks would be faster with hardware virtualisations.
+
+======================================================================================================
+Feb 8th
+Containers : typically used to wrap apps and run it in its runtime environment, completely isolated from other. 
+
+- application are isolated. Failure of one doesnt impact others
+- docker is one of the container management infrastructure.
+- with containers we can create clusters. Containers enable micro-services, which is now the defacto way of deploying a micro service. 
+- useful for running prepackaged applications
+
+Namespaces : creates a conatiner around processes, so even if multiple processes are running, if we create a new namespace and check the processes in that, there will be only 1 process which shouldne be possible wihtout containrizing this env cuz multiple processes are running. Its just that they are running in a different namespace. A collection of processes associated with a container is given their own view of identifiers and such, independent of other containers.
+	-isolating contaners from each other
+
+Union file system : ? literally, combine several file systems into a layered fashion with only the highest layer allowing for write operations (and the one being part of a container). instead of copying an env in a container and adding needed sub-directories, we can stack on features to be used on top of base layer to make the container more efficient. 	
+
+control groups : to impose resoource restrictions on a collection of processes. 
+
+In a traditional client-server : data is at rest in the database, server picks data from here and sends it to the client. If instead of data, we need the code to move (eg; if the data is too large to move it, OR, if we want the application to run 24*7. The second case is called code migration). There are mutliple scenarios when we would need multiple VMs.
+
+1. New VMs- as and when VMs arrive, we decide where to place them
+2. Load balancing : moving VMs around if some system is loaded with too many VMs, to reedeuce its load
+3. Load balancing : Some systems has v few VMs, very lightly loaded so more VMs are put into this system, to increase its load.
+
+When to move(moving the VM and its state) : research problem, when cpu util is too high POssibility that machine might fail in the imminent future based on historical data or some machine execution model.
+
+where to move : research question, meta google have their own mechanisms which are not shared to the public
+
+how to move :  Steps of migation, in slides(39?)
+	s0 : when and where to migrate, the decision is typically taken by the hypervisor and the cloud managment software which runs on the hypervisor
+
+	s1 : informing target that a new VM is coming. The hypervisor of current system contacts te hypervisor of target, telling it i want to move a VM to you. What moves is the state of the VM. The state is stored in the server.
+
+	s2 : copying is done
+
+CLIENT AND SERVER : slides
+- services offered by servers are generally tied to a port. Once this service gets a request from a client, the request is put into a queue and a dispatcher take these requests from the queue and serve these requests. 
+
+- the server can have multiple threads, have different containers for each service (kubernetes type thing), or it(dispacther which is figuring out how serve these requests) can be anything we build.
+
+Architechture of google chrome browser: simplified version
+
+- each tab is effectivly a process
+
+- HTMl parser : gives the dom tree
+- Stylizer : css parser, give the styles in a tree where each node is corresponding to a node of the DOM
+- Layout creator : nerges the two trees and decides where this information should go
+- Rasterization and painting : gives the basic layout
+- compositor : final thing that we want to see in the browser. Images here are fetched again from the server, the DOM doesnt have the images, just their source
+- The user can now interact with some part of this website and so on
+
+- This diagram tells us that client is not a simple client anymore, a lot of work goes on behind the scenes even on the clients. 
+
+STATELESS SERVER
+- never keep any information about the client and its status. 
+- it is extremely scalable(can have 20 clients OR 200000, it doesnt matter), very very fast, state inconsistencies are removed; so if the server or client crashes, no need for extra checks
+- possible loss in performance : If client is downloading a file, if we download half of it and the connection dies, if the connection is stateless, the download will have to start from the beggining. We will never be able to download the whole file if our conenction is patchy. But we dont see that today. Which means someone is remembering the state. The web server maintains state in a very indirect way using WebLog
+
+Why do we need WebLogs ?
+	- to find the difference between when the req came in, and when the req was served was used in sir's company.
+
+Clients can also remember states using something called Cookies. When client accesses a webpage, server sends a cookie back. If the clients decides to use the same webpage again, the cookie is looked up 
+
+DISTRIBUTED SERVERS
+- Servers are clustered for perfomance reasons, to hit up the closest server.  
+
+Akamai CDN :
+	Servers are distributed. 
+	- When we lookup example.com, we get back an IP address The akamai tweaks it so that the result is something is, it gets back example.coma.akamai.net
+	- then akamai's DNS looks up example.com as a part of akamai.net, The address of the best edge server is returned. We say edge to emphasize on the point that it (the server) is close to the user.
+	- Caching may or maynot occur
+	- We get the web page from this optimal edge server
+
+======================================================================================================
+Feb 13th :  Communications among processes
+
+MIddleware(a software) : provides common services and protocols to be used by diff apps, facilitates easy comms between applications. It sits above the the transport layer in the OSI model. Eg; SMTP is a middleware protocol. RPC infrastructure : packiaging, marshaling, unmarshalling data, etc are middlewares. scaling and naming mechanisms, security protocols, all are middlewares sitting on top of the transport layer.
+
+persistant comms : mesages that are to be sent are stored by the middleware(at storage centres) as long as it takes to deliver the message, the message is not lost in comms if the message is not delivered. Thus the sender can send the message and exit, and the receiver need not be online at the same time as the sender to receive the message.
+
+Transient comms : message is stored as long as sender adn receiver are executing, if the message is not able to be due to transmission interruption or if receiver is not presemt, the messages will be dropped. 
+
+Example of high level protocl and middleware : in the slides, slide4
+
+If we are using middleware, the comms need to be persistant. That is, if A sends a message and B receiving the message is not active, the message should be stored somewhere and be sent to B when B wakes up. This is opposite of "transient" messaging where client and server need to be up and running. Transient : message will be discarded maybe after a while but it WILL be discarded
+
+SYnchronous messaging : waiting for a response.
+Asynchronous response : client is notified when the res is available but it hasnt waited for the response, it moves with its execution
+
+Eg;
+Client sends a request using a middleware. If there is an interruption while sending the message, the job of the middleware is to store the message and to send it once the interruption goes away. (persistant comms)
+
+Sending a message from client to server is a blocking call until the middleware can ensure that the server gets the request. It is blocking between request submission and request delivery.
+Sender may be blocked till :
+	1. middleware says it will handle sending and receving (sync at req submission)
+	2. until the message is delivered and middleware handles the receving (sync at req delivery)
+	3. until the message is back from the receiver (sync after the processing is over)
+
+Now from request delivery to synchro after pricessing by the server can be sync or async. If it is synchronous, the client is waiting until a response arrives. If it is async, the client goes on with its work, when the server sends the response, the middleware sends a callback function to the client to come pick its response up. The middleware also performs storing the messages icase someone is not available to receive the messages.
+
+In case of transient comms, the middleware discards the request. If we want to implement comms with very low memory footprint, on low power edge devices. 
+
+Remote Procedure Calls : 
+
+- Client : function call() -> client stub : packs the paramters into a message and sends it to the server -> client stub calls "receive()" vlocking itself till it receives a response from the server
+- Server : message arrives->message goes to the server stub->unpacks and calls the local function with its parameters and blocks itself from other incoming messages -> funtion is performed and the results are sent to the caller which is the server stub -> packs it and sends it to client -> unblocks to receive other messages
+- Non remote, local procedure calls : when a function is called a stack frame is pushed, when the funciton returns the stack frame is popped. 
+
+in RPC, the parameter passing is more complex as it is happening over the wire. RPC brings about stubs. CLient stub is converting the data into a message (the body of the message is what in the slide, client process). This message is passed over the network and is sent to the server. The server stub then unpacks the message and calls the implementation of the function. Now it becomes a local call. The result of the fucntion is again packed and sent to the client. CLient and server stubs are geenrated based on implicit understandings on how to pack and unpack.
+
+- does there need to be one message for each function or can one message include multiple function calls? -> we have to send multiple messages for mutiple function calls by default. It is possible for one function call to have multiple messages though. It is upto the middleware to optimise and maybe group the function calls into messages.
+
+packing paramters into a stub is called parameter marshalling. Marshalling is cconverting the message into a machine and network independent form, unmarshalling is using this message to create parameters for its local machine. Both machines need to agree on the data type they will share/receive
+
+- data is passed by parameters, not references. We can also use global references, ones that are shared between client and serevr such as a file handle that can be accesed by the client and server. Here both must agree on the operations one can do on this shared data space.
+
+Problems with RPC :
+1. Byte placement : mismatch b/w big and little endian between client and server machines. Both client and server need to know byte placement mechanism of the other device. 
+
+Who generates these stubs ? -> a compiler called the IDL compiler. Is IDL file the rules/assumptions? -> YES. as a programmer we only need to write IDL file, the client and the server code. We then need to compile the client code and the server code, commons includes and the client and server stubs. The middleware links with the runtime library which is geenreated by the linker. This means it is possible to have server and client in different languages. It is then the responsibility of the IDL compiler to manage when 2 different languages are used. 
+
+stub == proxy == skeleton
+
+- JAVA RMI is an IDL compiler written in Java. 
+
+- multicast : one client and 2 servers. Both servers execute and return a value. The middleware handles the callback function to the client. WHy would we want to do this?
+	- Fault tolerance : If one server fails, we still have a request. If from n servers, we get a response from 'k' of them, the middleware does something called "majority voting" to decide which result is correct and should be used/sent to the client.
+
+	This majority voting is used in todays self driving vehicles, mars pathfinder used this. 
+
+	- or to serve 2 different sub-process to the ssame process to optimize performance
+
+Message Oriented COmmunication : imagine it as emails
+- socket programming is an example
+CLient has a socket and server has a socket. "connect" and "accept" are synchronization points, client and serve wait till this point. The client sends and server receives and ulta and the loop continues. In this case, what we are sending here is a message. RPC does this but at a much higher evel of abstraction, making it a function call.
+
+MOC is becoming very popular
+
+	ZeroMQ : simple message queueing infrastructure : 
+	- provides us sockets for comms to happen
+	- Actual transmission happens over TCP and is connection oriented(establish a connection first, this is a blocking part. After that sender and receiver can execute in an async manner). comms can be synchronous as well, we can choose while implementing it. 
+	- a socket can be bound to multiple ports thus alwoing us to have 1:m and m:1 (client : sever).
+	- the accept and conenct synchronization point isnt there anymore. 
+
+======================================================================================================
+Feb 20th :  Continuing with message based protocols and MIddleware
+
+message oriented middleware : is different from a normal function call. Here it is more generic, we send a messge and expect some response. Eg; TCP is message oriented.
+	Middlewares try to elimintae the synchrnoization points and make the usage easier. 
+	ZeroMQ : is one level above sockets, there are some enhancements where it provides mechanisms to publish-sub, request-response etc. 
+		We first establish connection but after that other details of the comms are abstracted away from the user. 
+
+ZEROMQ design patterns
+1. request-reply
+2. pub-sub : if there is someone publishing but no one is consuming, the message does not get saved in a queue until we implement a queueing middleware. As long as all are active, we wont miss anything.
+	If there are mutliple subscribers to the same publisher, the publisher does not know how many messages to send, it is the underliying middleware that takes care of this by sending the same message to every subscriber of that publisher's TYPE. 
+3. pipeline : 
+	pushing - once a request is created, it is pushed to tbe pipeline and the other comms ports are notified that something has been pushed.
+	pulling - comms channels pull requests from the comms channel (effectively a queue). 
+
+	connect - when we are receiving, bind - when we are pushing
+
+All the middleware can guarantee that the message will be pushed to the recipient's queue, it cannot guarantee if the message will be read, that is upto the recipient. 
+
+- message broker is used for converting the messages into a format that can be understood b the receiver, for the queuing middleware, this is just another application; it is not part of thequeuing system. Broker can be as simple as a reformatter
+
+Cloud Based Messaging Service (AWS)
+	- producer-consumer
+	- highly scalable and available
+	- AWS does not guarantee that if a subscriber asks for a message, it will receive the message after one request. Multiple requests is most likely going to be required. We have to be aware that we will not get it immediately. 
+	- It is possible that we get duplicate messages (the messages are still in unread state after reading it). This and the above point are due to keeping state consistent with multiple backup/storage serves where synchronization is the bottleneck. This means we might get a message evena fter we read it. 
+	- It may/may not be able ot maintain the order of the message, this means that the receiver needs to be idempotent. That is, for the same message received, it should perform the same task as it did before. This is the app developer's responsibility to make the app idempotent
+	- AWS doesnt delete messages in the queue assuming that our app might creash while reading the message. AWS gives the app the power to delete the message explicitly. 
+
+	- if we dont delete the message in the 30s period, the SQS thinks we havent read the message and makes it visible again
+
+JAVA Messaging services
+
+======================================================================================================
+Feb 22th :  Multi cast comms : One node tries to send information to as many nodes as possible
+
+=> lot of things to take from joel, was very distracted in this class
+
+- multiple receivers
+- is quite a common protocol
+- we are talking about say data gets updated now it needs to be updated in all nodes, at a much higher level than the sending packets level
+
+1. Flooding : nodes are modeled as vertices of a graph
+	- node u will forawrd to node v as long as v is not the paernt of u
+
+	When structure is not known : lots of math in the slides : take from joel
+
+	When the structure is an n-dimensional hypercube
+		if 0000 has the message it sends it to 0001 (the last bit is flipped, so we call transfer == 4). Like this one node can send its message to 4 nodes.
+		This means that every node gets a message with an id, assume that is starts with 0. A node V can send the message Mi by flipping its ith bit. This means 1001 can send it to 0001, 1101, 1011, 1000 being M1 M2 M3 M4. 
+		A node sends to Mi+1 to prevent sending back to its parent, basically dont send it to where it got it from.
+
+		When does this flodding stop ? => when a node gets m4, it cant send anymore cuz no m5 exists. Worst is (number of nodes - 1), which is much betetr than flooding in the orevious case
+
+	When the structure is a chord - say m is 5 (so nodes from 0  to 31)
+		RECAP OF CHORD
+		- data needs to be stored, we get a n bit key (bw 0 to 31)
+		- we store it in the successor of key which contains the data
+		- nodes can join and leave as and when they want to
+
+		- take from joel how propagation happens
+
+2. Gossip based data dissemination/ epidemic spreading : 
+	-infected nodes : nodes that have the latest data to be spread
+	-Susceptible nodes : nodes that have not recevied the latest data
+	-Removed node : node that have the latest data but are not willing to share it anymore
+
+	some classic epidemic models are anti-entropy and rumor spreading
+	1. anti-entropy 
+		node P chooses neighbour Q at random and sends it data, thus both end up having the same state eventually
+		
+		pull : P takes updates from Q
+		push : P sends data to Q
+		push-pull : P and Q send updates to each other; is a good model cu both might have different data that the other doesnt possess. This takes about O(logN) to send the data among all N nodes
+
+		- when many nodes are infected, pure push is bad cuz vv litte susceptible nodes to push to. nodes might remain sus for a long time. pure pull is good when many nodes are infected as spreading is initiated by sus nodes
+
+		- if only one node is infected, push-pull is the best strategy
+
+	2. Rumor spreading : A server s having an update to report, contacts other servers. If a server is contacted to which the update has already propagated, s stops contacting other servers with probability Pstop.
+
+		Theory of epidemics, has some maths in the slides (take 1,2,3) as given. We get C value from i(s) =0, this happens when nobody is infected
+
+Deleting values
+	- we can delete from one server but deleeting from every node is hard, there is a chance that some nodes havent deleted the data, which means the node with the extra data will tart sending the old deleted data thinking it has some new data and then everything gets undone as well, meaning its twice the effort 
+
+	- we issue something called the death certificate, when we want to delete, we make a special update call death certificate about that data and then does rumor spreading to send this update, now data is not deleted but marked with a certificate. This means death cerificate is a speacial update
+
+	- we need something like a garbage collection to clean these certificates after a while.
+
+	- if a node P has DC for value x and it receives some update to be done on value x, this means the dude who sent the update for x doesnt know that x has a death certificate, so the node P has to do rumor spreading for the death certificate to the entire network again
+
+	
+======================================================================================================
+27th Feb : class missed - distributed hash tables - take from joel
+
+======================================================================================================
+29th Feb : Continuing distributed hash tables
+
+Why is key space so big? why not 32, 64? => smaller key space leadds to lesser security, also number of collisions increase when the key space is smaller.
+
+Structutred Naming : simple human readable names
+	Can be organised as a naming graph, slides(slide 10)
+
+	Each directory node will have a table which stores its leaf nodes and directory nodes under it(stores the outgoing edges), it can hold addresses as well. The graph shown is just a namespace, not restricted to any specific implementation.  
+
+	Resolving a name : given a path, find out details about the node being referred to. Where we start depends on the context, where we start when we are reading the path is important. /a/b/c means we start from the root of the file system. ./a/b (relative path) we start at the current directory. Current directory is stored in an environment variable. That env variable will have a path, so we append the this ./a/b to the path of the env variable to get the final pat. 
+
+	Linking Names : (slides, 13)
+
+	Mounting : There is a machine in indai and a machine in Ned, the vu directory inside remote is now connected to another directory which is in Ned. This is called mounting. The flits.cs.vu.nl somehow resolves and gives us the needed machine, will talk about it later(done using DNS). Then we enter the directory where we can to place the pointer to. This in some sense is aliasing. Here we are creating a soft link across machines. 
+
+	Naming Services : namespaces need to be ditributed across servers
+		global : .in or .nl, one admin for each of these.
+		admin : within say .in, there are mutliple possibilities which are broken down to be managed by groups
+		managerial : say "@bits-goa" is managaerial, ".ac" is admin, ".in" is global
+
+	Itertaive and recursive name resolution can be understood from slides, straight forward no complications
+	- the caching can happen at any level, not necessarily the root level. root caching means it is possible to cache the whole path as well
+
+	DNS Database, how is the naming and storing done, how to read the website and jump from one section to another. 
+
+======================================================================================================
+5th March : DOmain Name Space & System
+
+- Recursive is the way to go as it reduces cost, as caching occurs in client side for the root server. 
+- DNS record type HINFO : information about the host (there is a table in the slides talking about these record and how to read them, slide 22).
+
+Many times, ftp servers and web servers would be using the same view of the file system for effieciency purposes. They are generally both deployed in the same machine. 
+
+If there is any rewuest to a secnodary DNS server when the primary is up and runnign, the request is sent to the primary server. 
+
+Old model : there is possibly local resolver, possibly in the network edge. Nowadays, cloud based resolvers are becoming popular. Nowadays, browsres can bypass the local resolvers and hit up cloud based resolvers directly(called outsourced name resolution). If the name resolution is outsourced, we need to verify if the resulsts are correct and privacy concerns which are not covered in this course. CDNs generally use external resolvers (similar to the Akamai we learnt).
+
+Revise Akamai CDN from notes + slides : uses outsourced DNS resolution, thus in a sense providing it as a service
+
+Network file system : slides
+Problem : A cant tell B about the files using the filenames used by A. As the names might mean different things than what B expeccts when it sees the name, so we use standardized name space rules. eg; /us/bin is used to store binaries and nothing else. 
+
+2 servers and 1 client example
+	B-> A and then the whole thing from A is imported to the client. The client will have to explicitly mount this inner directory which the FSa is not allowed to export(it is not allowed to expirt things that it has imported). Which means now its the clients responsibility to import and get the inner directory to use, its not the servers responsibility to mount it on the client. 
+
+	Whta happens when client tries to resolve /bin/draw -> in the slides
+
+	Older versions of NFS would resolve iteratively(get what is in bin, then get what is in bin/whatever and then so on). NFS v4 supports recursive lookups (understand this properly) : /bin essentially goes to /packages in FSa, then /draw. NFS v4 gives the mounted directory handle directly which makes it faster. To to things recursively, the NFS v4 returns directory handle of the directory it resolvedd, not its original content
+
+	Automounter has its own space to mount and create symbolic links instead of mounting in the user's namespace. 
+
+	What happens if the client doesnt have permission to mount something that is automatically mounted => then the entire mounting will fail, only the mount of the directory without permission fails, not the whole mount, so the rest of the directories can be used. 
+
+ATTRIBUTE BASED NAMING
+	IT IS SOMETIMES MORE CONVINIENT to look up things through theur attributes using smoe queries. These lookups can be costly in terms of time. LDAP is a directory service which combines structured and attribute based naming : uses a directory access protocol. Creates a directory database (slides for the attributes and their values)
+
+	LDAP entries
+		- some of the naming attributes have tags and some dont
+		- It will form some sort of a namegraph, similar to what we have studied before
+		- each query will return a set of records which satisfy the query. 
+		- read v/s search ?
+
+	LDAP can again be distributed. 
+		- forest of LDAP, there is a global catalog or the root under which all the trees are there. The root is known as domain controller, eg something that is multi country but will use the same auth systems/mail/etc, these will very likely use distributed LDAP. 
+
+		- caching happens in our pwn laptop
+
+		- Distributed Index (P2P), we can use distributed hash tables for this. 
+
+Kubernetes namespace : 
+	
+
+======================================================================================
+
+MIDSEM PREP
+
+doubts =>
+
+- 02_intro slide 5, what is a TP monitor 
+	transaaction processing monitor, responsible for coordinating execution of a transaction. responsible for mainting the acid properties in distributed transaction systems
+- referentially and temproally decoupled (shared space one) is content based pub-sub and the ebent based one is topic based pub-sub?
+- hyperqueue, how does it work(movement) for more than 4'b? => hypercube not hyperqueue, one bit for each direction of movement. 
+
+
+
+To revise ? 
+01_intro.pdf
+
+- slide 16,17,18
+- classfication of distr system from textbook (the underlined parts)
+- Archutechture from tb, layered (service based vs resource based)
+	- layered arch is common in distrubuted information systems
+	- monolith vs microservice from the slides(calculator example, each feature as a module or everything in one process)
+	- pub-sub content vs topic in gemini (arnvgpta95 account)
+	- message and request interceptors in gemini
+	- p2p structured and unsrtuctured
+
+
+==============================================================================================================
+MIDSEM PREP
+
+DOubts:
+
+	1. kubelet spins up the pods, who takes care of the heartbeat monitoring and announcing it as unresponsive? kubelet or the controller manager?
+
+	2. difference between privileged instructions and sensitive instructions (slide 12, processes and virt)
+
+		https://pastebin.com/E6tkwAVu
+
+	3. What is binary translation ? (slide 14)
+
+		Binary translation is a technique used to convert instructions written for one computer architecture (instruction set) to another. It's particularly useful in virtualization for running programs designed for a different processor on your system.
+
+		Here's a breakdown of how it works:
+
+		    Source and Target: Imagine you have a program written for a specific processor type (source architecture). Binary translation allows you to run that program on a different processor type (target architecture).
+
+		    Translation Process: The translator analyzes the program's instructions (in machine code - 0s and 1s) and converts them into equivalent instructions for the target architecture. There are two main approaches:
+		        - Static Binary Translation: This translates the entire program upfront, before it's run. It can be time--consuming but offers good performance once done.
+		        - Dynamic Binary Translation (DBT): This translates instructions on-the-fly, only when they're needed. It's faster to start but can have some performance overhead during execution. the transalted block of code is cached into a Translation Cache for repeated use.
+
+		    Benefits: Binary translation offers several advantages:
+		        - Run Incompatible Programs: Allows you to run programs designed for different processors on your system. This is crucial in virtualization for running guest operating systems.
+		        - Performance Optimization: In some cases, the translation process can optimize the code for the target architecture, potentially leading to performance improvements.
+
+		in x86, data and instructions are not separate, making static transaltion hard, it is also hard to cmmpute tagret of a jump. 
+
+	4. slide 15, 16 working of a binary translator	
+
+	5. hypercalls in paravirtualisation
+
+		In paravirtualization, hypercalls are the mechanism for communication between the guest operating system (OS) running inside the virtual machine and the hypervisor (virtual machine monitor). They act as a bridge for the guest OS to access the underlying hardware resources in a controlled manner.
+
+		Here's a deeper look at hypercalls:
+
+		    Function: Unlike full virtualization where the hypervisor translates guest OS instructions, paravirtualization relies on hypercalls for specific tasks. The guest OS makes a hypercall when it needs to interact with the hardware or perform an action that requires hypervisor intervention.
+		    Benefits:
+		        Performance: Hypercalls are much faster than emulating instructions because they directly communicate with the hypervisor, leading to significant performance improvement compared to full virtualization.
+		        Efficiency: Hypercalls are targeted requests, reducing the overhead of the hypervisor constantly monitoring and translating guest OS instructions.
+		    Process:
+		        Guest OS Request: When the guest OS needs a hardware resource or specific action, it initiates a hypercall with defined parameters.
+		        Hypervisor Trap: The hypervisor intercepts the hypercall and identifies the requested operation.
+		        Resource Access/Action: The hypervisor either directly grants access to the hardware resource (like memory) or performs the action itself (like device I/O).
+		        Response: The hypervisor returns control to the guest OS with the results or completion signal.
+
+		Analogy:
+
+		Imagine a virtualized system as a restaurant kitchen. The guest OS (chefs) can't directly access the pantry (hardware) themself. They use hypercalls (placing orders) to communicate with the head chef (hypervisor) who retrieves ingredients (grants access) or performs specific tasks (like cooking a dish) and delivers them back.
+
+		Key Points:
+
+		    Hypercalls require modifications to the guest OS kernel to include the hypercall instructions specific to the hypervisor it's working with.
+		    This modified guest OS is called a paravirtualized guest OS.
+		    While hypercalls improve performance, they reduce portability as guest OSes need to be modified for different hypervisors.
+
+
+	6. revise slide 29 and 30, 38, 39(doubt? why is the graph like that? what does it mean)
+	7. page 206 of tb(not pdf) for different types of rpc (the pictures only)
+
+	8. Advanced message queuing protocol
+
+	9. best and worst case for flooding, all formulae in that chaoter, number of edges for cases, flooding in hypercube, chord, 
+
+	10. finger table math, proximity based DHT
+
+	11. hard vs soft links
+		Hard link: Name resolved by following a
+		specific path (/home/steen/keys)
+		Soft link: Allow a node N to contain a name
+		of another node
+		• First resolve N’s name (leading to N)
+		• Read the content of N, yielding name
+		• Name resolution continues with name
+
+	12. Recursive lookups in NFS
+		AUtomounting : mounts and unmounts file systems on demand, mounted when needed and unmounted when not in use.
+
+===================================================================================================
+
+Post midsem : missed one class on naming => findihed till vector clocks
+
+19th March : from vector clocks example
+
+for each process, instead of clock being scalar, it uses the information from each process that is running using a vector(n). Using these vectors we check if a particular message is arriving another message. It is used to detect causal dependence or is there a potential conflict.
+
+We are only focusing on delivering of messages. 
+
+Causal ordering in multicasting :
+	- it is possible to have this causal ordering and is possible to check if a message that was supposed to arrive and it hasnt arrived, so i wont deliver a message that is required to be delivered after the delayed message.
+
+	- a message is delivered only if all its causal;y ordered messages are delivered. 
+
+	the second point; Pj has delivered all its messages and thus its state must be greater
+
+	Eg; when P1 is sending, its state becomes one, and when P2 receives, the state of p1 in p2 becomes 1. Now when p2 sends it makes its state to 1 (in p2). For p3, when it gets m* the second condition is not satisfied and thus waits for an event from p1. Now until m has arrived from p1, m* is delayed. Once m has arrived then m* is delivered. m* was received but not delivered as it didnt satisfy the conditions, thus it was kept in a queue and was delivered after m is delivered.
+
+Mutual Exlcusion
+	when several processes (distributed) are trying to access a resource. 2 broad categories of solutions are token based (processes form a logical ring and a token is passed, if a process has a token then it can operate, like a semaphore). There is permission based when process i asks somebeody (central coordinator for centralised systems OR talk to each other in case of ditrbuted systems, in these 2 cases there is a leader) for permission and if it gets it then it operates
+
+	in token, get token => then work or if dont want to work then pass it on
+	in permission, ask for permission => then work if permission is granted
+	
+	1. centralised permission : 
+		process p1 is asking the central coordinator if it can grab a resource, checks for queue and if queue is empty then grant the resource. While p1 accessing p2 asks, then no permission is granted until p1 finishes and p2 is queued. Once p1 has released, it informs the coordinator and based on this signal the first person from the queue is allowed.
+
+		Messages passed : request to enter -> grant -> leaving
+
+		Who is the leader and what happens when elader goes down ? how to diff between wait and a server failure; use concept of ACK, if there is no resposnse then assume that the leader is dead. 
+	
+	2. distributed permission : influenced by lamport's clock => read the slides/tb
+		- say it's (Pi) a multi-cast; sending it(Mi) to everybody and itself(conceptually). Read the slides, it is written assuming no one is dying, we can use a deny message instead of a no reply. Each process has its own queue
+
+
+================================================================================================================================
+2nd APRIL : missed a lot from 22nd March (3 classes) : consistency and replication
+
+- content is mostly from the book but not all of it; from other sources as well
+
+Data items are possibly replicated in multple places, when an item changes; the processes accessing other locations should be able to see the changes as well. if one node fails, we still have other nodes to work with so that the system does not fail (reliability), we also replicate for performance to access the closer the servers for faster operations on data. Thus we replicate for reliability and performance
+
+When we replicate - the issure of consstency pops up; the changes should be propagated to all the copies of the data. This is done through message passing as we learnt in coordination
+
+- all conflicting operations happen in the same order everywhere the data is stored. 
+	- done in parallel computing and OS using locks or sync threads
+	- in DC, we dont want to do it using this kind of explicit synchro as it is very costly for performance and we lose the performance edge this is supposed to provide. 
+
+types of consistency models
+1. DATA - centric
+	
+	- consistent ordering
+	- eventual consistency
+	- continuos consistency
+2. CLIENT
+
+	- monotnic read
+	- monotonic write
+	- read your write
+	- write follow read
+
+DATA CENTRIC
+	We have physically distributed data stores (files, shared memory, databases, anything; need not be HDDs) which are accessed by processes. There is acontract bw the data store and the processes; the type of consistency guaranteed by the contract depends on the type we choose (say sequential, then its rule will be honored; the processes can work based on the assumption that this type of consistency is available for all processes). 
+
+	Notation : Wi(x)a => process Pi writes value "a" to var "x". SImilarly for Read
+	- we assume that the values are initially NULL for every variable
+	- there is no global clock here ( in slide 6 example); just cuz Pi wrote it before doesnt mean Pj can read it, maybe due to network delay or crashes or its reading from a replica that hasnt been updated yet. This is a highly valid sceanrio
+
+	1. a)sequential consistency/ consistent ordering :
+
+
+		when there are process multiple process across diff nodes, all types of interleaving is possible but all processes must see the same interleaving. (TB)
+
+		in first exanple(slide 7) change of P1 has propagated later than P2, and both p3 and p4 read b then a, this is allowed. All the nodes are seeing the same thing at the same time-instant. in the second example, the ordering is not consistent as p3 reads b then a and p4 reads a and then b, which is not allowed in this kind of contract, as the ordering is not consistent across processes
+
+		This is kind of a weak consistency, where just the final order is important; this cannot work when out program is sequential as the ordering can get messed up but still execute in the same manner across all nodes, thus our program will be wrong on all nodes
+
+		FOr the three process example, there can be multiple valid execution, we look at 4 valid ones. assume that all initial values are 0. the outputs might differ for all of them but at each point every process sees the same values so it is consistent
+
+		000000 -> 2nd point in the slide is getting violated
+		001001 -> p1 starts before p3 but for the last 01 (p3 has to occur before p1) which is a violation
+
+		How many valid sequences are there?
+		6!/(2!*2!*2!) total possibilities/(print after assignment for each) => same as 6 balls with 2 of each color
+
+		HOW TRICKY CAN IT GET : all the writes must finish before the reads start. These 2 processes are not serializable(order it in such a way that result is same as when they are performed in a sequential order with no overlap). This can be solved by linearizability : (slides) : in the shaded time, the value of x should be a for w1(x)a, that is if the shaded area ends at t=t, then at t=t-1, the value is already "a". (TB)
+
+		if we want a real-time ordering; we need linearizable. in sequential consistency; the update will not propagate immediately, the nodes will read stale copies for a while
+
+	b)causal consistency
+		(TB)
+		- in first ex, if a is written before b, then we cant read b is being read before a. (as the writes are causally related)
+		- in second ex, this is not the case as the writes are not related, thus can be swapped and it is allowed 
+
+		in the last example(slide 13); since W2(y)b has propagates; W1(x)a has to be propagated (for P3), but no such requirement for P4 and thus it can be null as well for P4 but not for p3
+
+	2. eventual consistency
+		- shared state is consistent eventually
+		- in web pages, there is ony one master updateing the page, so no w-w conflict => r-w; reading stale data which will eventually become the correct data. if w-w occurs; let the last write win (one possible solution, is not the only solution, it can be application dependent as written below)		
+
+		application dependent case : conflict resolution based on what is more agreed (A,B), it can also be Tc based on ranking of C begin higher than A and B. 
+================================================================================================================
+9th APpril : Client centric consistency : data should be consstent for the client, not for the server and the overall system
+
+Data centric : the server would be doing the consistency and the client puts the request.
+
+weaker forms are consistency are looked at if we do not want to sacrifice performance. client centric is simpler to implement and hides inconsistencies in a simpler manner. This has been motivated for mobile users (bayou; distirbuted database for mobile users where the network is inconsistent)
+
+moving from A->B, we may or maynot have accessed the same server. If the server is not same, the update might not have propagatd as we are looking at eventual consistencies. We might also have updtes not consistent as some updates have been propagated and some havent. 
+
+We look at versions here. Types of consistency
+	Monotnic read : if P reads x, if it reads x again, it will always return the same or a more recent value, never an older value.
+	slide 23; second one is wrong because at L1 it writes x1 and reads x1. and at L2 it writes x2 and reads x1. (x1|x2) means they are being written parllely and anyone of the two can win and propagate. 
+
+	Because x2 is not following from x1 and is just coming from somewhere else, x2 should >= x1 (in terms of recency) but l2 is writing is not a more recent value of x1, it hasnt even read the value x1, it is a more recent value of NIL. 
+	If we see 5 emails in india, when we go to us, we should be able to see those 5 emails read in us as well, there can be more but that should be there, if it disappears then it is wrong
+
+	Monotonic write : 
+		say there is a distr software and updates are happing at diff locations (globally). when we update the program at server s2, all the components on which the compilation and linking are dependent should also placed at s2. if the dependcies are at s1, and we compile it at s2, we are compiling using a snapshot of data that is inconsistent. 
+
+		Red color : bad example/violation
+
+	There are cases where (xi | xj) and it is still consistent. For the second example; say we have a shared document which is a distr at many locations 1,2. If we make a change( say introductio) at location1 and we dont see the changes from lcation2(already wrote introduction), then it is x1|x2. if we see the change then it x1;x2. in this exaple, 3 evrsions are in the distributed system
+
+	in third example; it is wrong b	to write x3. 
+
+	in the fourth example; it is correct as the last write is W1, which is for process 1. if the last right is w2 then it is writing on something it has not seen so its not consistent
+
+About predicting the reads; depends on the implementation, like zookeper does both read and write consistency
+
+	Readnig our write : if a process writes and immediately reads it, it should see it. The effect of write is visible immediately to the same process
+
+	Deleted emails re-appear is NOT a bad example; 
+
+	1st eg; p2 has produced a new version of x based on x1. Here the consistency is determined by the last write by P1 rather than the last read(in monotminc read). if it was r1(x1) in l1 then lso is is fine
+
+	2md eg; if the last read r1(x1) then it is okay. here P1 does not know that x2 is based on its x1(the given example)
+
+	Writes follow read : mainly in social media
+		changes are made irrespective of the lcation. if someone writes w1(v) and p2 reads and writes w2(v:v2), then w2 SHOUDLD NOT be visible before w1 for other locations/processes. we can have w1 and w2 as the changes have not propagated, this is okay. 
+
+		in the second example; it does not know what is updating as x2 is not following x1 and x3 is not following x2. P2 is updating something might no exist. if W2 was W2(x1;x3) this is not possible as if p2 is reading x1 but it is a timeline so it should be there before it (re-read and come up with lgic, the logic is based on the line beign a itmeline and it cannot do something that violates the timeline)
+
+Zookeper consistency : 
+	in the example; two process p1 and p2 and x = NIL. P1 writes A then writes B, then issues reads and gets NIL, then a then c. this is cuz zookeper has ordered the requests in this order as p2 is also writing at the same time. Here read your write is not followed as it writes and gets back NIL, write follows read is also violated as after it writes, it may still read some other value based on the ordering of zookeeper as the initial write has not propapgated. 
+
+
+	All the data will be standarised across using eventual consistency, here we are talking about consistency for the client, hence the name client centric consistency
+
+	monotonic reads and writes are followed as the ordering is not changed by the zookeeper
+
+NEXT CLASS => middleware has a primary and if mobile makes a change, the change goes to the primary server. If the server is not primary the request is forwarded to the primary server and change is made on the close-by server
+
+local write : local server is primary as everything is connected to the cloud, the the write we make happens locally first and when the connection is established, the write goes to the primary server and from there it goes everywhere
+
+=================================================================================================================
+April 10 : Protocols
+
+protocols are implementation of the models we have been discussing; client and data centric. Here we will see how they can be implemented.
+
+We first look at data centric consistency; most of the things happen at the server; we have
+	1. sequential protocol
+		for primary : we have remote and local write(described at the end of the last class section)
+		- skipping cache coherence protocol 
+
+		Remote write protocol :
+
+		process sends write to primary server -> write occurs in the primary -> sends to all backups -> backups ack -> when all backups ack, the primary tells that write is finished. 
+
+		if the request is sent to a server that is not primary, the server will forward the request to the leader(how to selct the leader has already been discussed), then primary writes and tells all the backups to write and then send acks, once all acks have been received, the primary server sends ack back to the server it got the message from(it can be the client or an intermiediate server which the client connected to first)
+
+		- blocking can hit the performance as the process is waiting for a long time before it can continue; but has goo fault tolerance
+		- to increase perf, as soon as primary updates it returns the acks to client and waits for other backups in the backgroumd from the non-primary server. This impacts the fault tolerance
+
+		Local write protocol : 
+
+		typically for mobile apps. Gets the data into the device's local store(the server it contacted, something that might possibly be moving with the client), makes the update locally. Then this local server acts as a primary and tells all other servers to update and gets the ack back .
+
+		When the client writes, it gets the ack from the local store and the other server acks happen in the background. once the loacl store acks, it asks the other servers to ack. Again this can also be blocking(when all servers ack only then the slocal store acks, or non-blocking; ack as soon as local upadte has finished). 
+
+	2. Replicated Write :
+
+		Active rewriting :
+		there is nothing like the primary. every replica has a process to make the update. The multi-casting in this case(as there is no primary) it requires some ordering; which is done by the coordinator
+
+		the update request comes to the coordinator -> it assigns a sequence number for each operation which continuosly gets incremented -> then it can send the operations(one or many) to all replicas -> replicas carry out the updates in the order of the seuqnece number, preventing the jumbling of order to manitain consistency across all replicas
+
+		Quorum based : (needs a min number of agreements to do any operation)
+		while rading; if all the version numbers are same then it concludes this is the latest version number and reads it. 
+
+		- As long as it satisfies the last 2 conditions (nr + nw >n and nw >n/2) then we can read and write without any conflicts
+
+		the write-write conflict ? why is there a conflict here? the dotted box is how many are agrreing and Nw is the minimm number that needs to agree to eprform operation. in this case only 6 are agreeing for write, so here read-write are being avoided but not write-write.
+
+		The values of Nr and Nw can be decided by the admin. in the third example(orange) the read is very easy but the write becomes costly.
+
+Client based protocols :
+	client is having Mr or Mw, RyW or WyR. now we talk about how to implement them. client maintains 2 lists (read and write set). Each client has its own read and write set. (meaning fromm the slides)
+
+	this list grows and can become very large, to keep it managable, these r-w oerations are grouped into sessions and and once a session is over the list is cleared. This is why session gets over and we have re-login on websites. 
+
+	for Mr and Mw protocols, Mr(client always reads the recent value)
+		if a client wants to read, client passes its read set -> server gets the set and checks if all the writes in the set  have been performed -> if not then it conatcts the needed servers(again this can have primary) and tells them to finish the operations -> send the result back to the client with the updated read set( this write set may be dependdent on soe other read set of another process and these are added to this client's read set). 
+
+	for Mw(a client completes a write first before wrirint the next item);
+		client passes the write set to server -> Server can pull any updates and exute in correct order -> take from slides
+
+	for RyW(server where the read is happening must have seen all the writes that have happened before wrt to this client);
+		(flow chart from the slides)
+		- sends the write set here and not the read set; to performa all the writes that havent been performed
+		OR searches for a server that has completed the write set (if lesser number of servers and the write set is huge, try the next server is a tough question to answer; that call has to be taken based on the performnce needed by the client and time it is waiting and number of potential servers which need some math). Here syncing between S and S' is the server's reponsibility
+		- it can also be a mix of 2; jump after waiting for a while but everything has its adv and dis-adv
+
+	for WfR (any write is performed on an upto date copy of x)
+		- we pass read set as all reads need to be performed to update the copy of x finally
+		- same variants of S' is possible here as well
+
+Caching and replication of the web
+	- caching can be used to imprive perf, the pages are dynamic now so the caching becomes meaningless, is extremely complex
+	- caching typically happens at the web proxy
+	- arch of the caching and data flow
+
+	cached data might be stale, if its dynamic we also cache the scripts to generate the data. Thus cache contacts server to stay uptodate preiodically OR there can be an expiration time(how long ago this doc was modified); the doc is considered valid until Texpired, after which if someone requests for the doc then they will have to refetch the doc form the main server. 
+
+Alternate caching and replication
+	if update req are low; it is read heavy. ALso all the updates are happening at the origin server and is being cached regularly. So we can fully replicate the origin sever at the edge (this will allow to handle complex databases as well). 
+
+	partial replication => when we know that the queries are performed on only a small subset of the data. 
+
+	content aware cache (partial replication); the store is stale for some set of queries, if a stale query occurs then it goes to the origin server otherwise is served at the edge
+
+	content blind cache : stores the query and its result; if the query is different then it goes to the origin server. 
+
+~ REPLICATION AND CONSISTENCY FIN.
+==========================================================================================================================
+April 16th : Dealing with failures
+
+The goal in DC is to make quite a few things transparent; as discussed intially. Failure was one of them, systems are failing but the user is not aware of it. we are dealing with failure with the objective that it should give us the correct output, dealing with failures if it provides wrong output is useless.
+
+- 4 criterias to achieve to be dependable(slides)
+
+it is better to give no answer rather than wrong answer. Fault can be MASKED by other servers if they send teh correct data. fault : some component is not working, failure : system as a whole is not working
+
+Fault : some cause of error, bug in the code or there is some edge conditions that havent been considered, may/may not result in an error, say network is gone 
+
+Error : Data we are expecting to be stored at a side is not upadted(one possible error), may/maynot cause failure
+
+Either stop the fault or prevent the errors if a fault occurs, or if both fail somehow there is no failure.
+
+We cannot fix all the faults, and it is not worth fixing everything. Remve the faults which will have a catastrophic efforts, then remove the ones which occur the most commonly. 
+
+Types of failures
+	1. crash : no problems beofre teh crash, either runs perfectly or crashes and doesnt work at all
+	2. omission failure : failure to repsoinf to incoming messages/unable to send replies
+	3. timing : response occurs after the needed interval
+	4. resposne failure : we get some answer but the answer is wrong, value can be wrong or some state is being transitioned wrongly
+	5. Arbitrary : produces random results at random times.
+
+Fault classifcation
+	- Transient : appears on certain inputs and is fine for others. (diff to fix)
+	- Intermittent : Appears and vanishes and then again appears. (diff to fix)
+	READ FROM TB
+
+the content is just yapping for now
+
+Why is the domino effetc probelmatic - because f dependencies. When the systems are not isolated well, problem with a node can impact other nodes it is communicating with. 
+
+slide 13; people use timers and after it expires, people assume thta the system has failed if there is no reply
+
+- Halting failures. (for sync, async and partially sync)
+
+the MATH => f(t) : prob that the system will fail at timme t. F(t) : prob that it will fail b/w 0 to time t
+	F(t) : intergal f(t) from 0 to t, sort of like a cumulative density function
+	Reliability is R(t) = 1 - F(t); what is the prob that it will not fail from 0 to t
+	MTTF : expected value = E(t) = integral t*f(t) form 0 to inf; (WHAT DOES THIS MEAN IN ENGLISH)
+								 = -1 * integral of t*R'(t) form 0 to inf
+								 = do chain rule intergation uv1 - u'v2 + u"v3 ....
+								 and t*R(t) tends to 0 at inf so it just becomes integral of R(t) from 0 to inf
+
+
+	Availiability = MTTF/(MTTF + MTTR); if MTTR == 0; then availibity is 100% which is impossible to achieve
+	slides for how TTF, TTR and TBF are caluculated
+
+RELAIBILTY IN TERMS OF FAILURE RATE
+
+- N identical components, No(t): no of correctly functioning components and Nf(t) = number of failing components
+- No + Nf = N
+
+- failure rate function : rate at which the software is failing/number of correctly functioning systems at that time. smaller the z(t) : higher the reliability =>not sure, derive from R(t) = e^(-zt). here we asusme that z is constant as software does not age. which means the z has to be calculated before the graph, this is done empirically by simulating multiple times to get an experimental value of z for the graph
+
+- the d(Nf(t))/dt cannot be negative so z(t) cannot be negative
+
+dR/dt = 1/n * *dNf/dt => replace in z(t) we get z(t) in terms of R(t)
+
+HIGH AVAILABILITY (HA)
+
+- dont count informed/planned downtime to be failures. 
+=========================================================================================================================
+18th April : Software reliability
+
+- we are not covering fault detection slide(21) in this course
+- error masking : how do we mask a fault; mainly using redundancy. Hot : multiple clones of software and hardare running parallely and one of the output is taken, if one of them fails then other one can kick in and downtime is almost 0. This is extremely costly. Warm : backup is present and is almost ready, the system is up but process is not running. Cold : backup is tested but is not on.
+	
+- fault recovery :
+	rollback : same as database
+
+Redundancy to mask errors
+	info redundancy : add extra bits to recover if the data is garbled, so we are basicall adding extra redundant bits incase the data is garbled
+
+	time redundancy : repeat an action if we dont get a response
+
+	physically redundancy : adding duplicate components (s/w or h/w); say an aarray of webservers for scaling adn fault tolerance. TMR (triple modular redundancy); we baically triplcate the 3 process/hardwares A,B,C into Ai, Bi, Ci. we also use voters(again sw or hw) and has the ability to take 3 inputs and compares them. If the moajority is the same then the majority is outputted, allows any one to fail at point of time. If 2 of them fail then output becmoes undefined. There are 3 voters for each level as even voters can crash/malfunction. sow e have 3 voters so that anyone of the voters can crash. 
+
+Process resilience
+	
+	say we have a ubnch of distributed process and we dont have a bunch of voters. 1. replicate the data(here we trust the processes) or 2. when there are processes who are colluding with bad intentions, we cant trust the processes. In this case, we need to take a consensus. 
+
+	Replication : members are all identical and processing the requests in the same order and no node is malicious thus trustworty
+		Hierarchical : elect a leader and the leader coordinates everything.
+		Flat : there is a replcaited write protocol and use a quorum based protocol. 
+
+		K-fault tolerance : can mask max of k-number of concurrent member failures
+			haulting failure : even if k fail(hault/crash, this is not about giving the wrong output) we need atleast one to give the output; thus k+1 systems are needed as all are trusted
+			arbitrary, byzantine failures : 2k+1 (if half give wrong output then we are not able to trust and need to verify in this case)
+
+	Consensus : each non faulty process executes the same command in the same order. These non faulty processes need to recah a consesnus on what step to execute next. We can reliabily detect a failure. and all processes are identical
+
+		Round-based algorithm : after every round every process broadcasts its next task, and thus gets a number of next process and merges it with its list. Then a global selection function selects teh next process which is to be performed by everyone. and then repeat
+
+		The problem comes when there is a crash. 
+		1. p1 crashes during its muticast and it is only sent to p2. So p2 has the biggest list of task. So only p2 is eligible to excute any command, so p2 is the one doing the selection process. other nodes know that p1 have crasehed. p3 does not know if p2 and p4 have received anything from p1, so it doesnt to the decide operation, postpones it. p2 does the round and multicasts, this time p3 and p4 receive the data and are able to decide
+
+		So it is fixed after a round, not immediately
+
+Revisiting RAFT : tried to simplify a protocol called paxos. it basically detedcts a scenario where eventually everybody knows who has failed and; is used by etcd kubernetes, uses 5 replicated servers each server maintains tis own log; storing list of committed and pending operations
+
+In a perfect scenario, all logs should be identical. There is a leader which basically decides what is the pending operaition that needs to be done. (READ FROM TB,SKIPPED THIS CLASS)
+
+===================================================================================================================================================
+April 23 : Curtis : kubernetes persistant storage
+
+We are talking about data in the scale of petabytes. containers themselves are ephemral they can come and go, but the apps inside them are not ephemeral. We need to be able to provide, protect, and give high performance to use the data. It should also be scalable.
+
+DAS - just stack a bunch of disks in a server and use it. problems such as less parallelism as data is not ditricbuted well, less load balancing which means spacce is untilised. Data loss; so we add RAID. we need to manage each storage system separately
+
+NAS (file based storage) and SAN (block based storage). there is also object based storage which access the data via IP. 
+
+components of a storage system
+	racks : each of them have controllers and disks. the controller manages the disks
+
+	- we can combine racks to form clusters. A rack is also reffered to as a node
+	- the disks can be SSDs, HDDs, flash or hybrid. whatever decision is taken is baed on economical reasons
+
+in blocks; the data looks local to the client
+in files; the data is exposed to the client, it does not look local. they generally use NFS
+
+Netapp provdes a single storage system. from here they can do NAS, SAN or object(s3). Once we get a system we can decide which protocol we want to sue for storage. We can mix and match, students use NAS and admin uses SAN or something like that
+==================================================================================================================================
+April 24/25 : introducing PAXOS
+
+raft is a simplified version of paxos. This protocol is based on the control messages. 
+
+At the server side, there are diff roles
+	1. proposer : receives the message from the client.
+		sent to the leader proposer; he creates a proposal
+	2. acceptor
+	3. learner
+
+safety(not doing something bad, only the proposals thata re learnt are executed. only 1 will be learnt at a time) and liveness(whatever proposals are being proposed, even if it takes some time, they will be accepted). safety is guaranteed, not liveness(the proposals are not mandated to be accepted eventually).
+
+explaining multiple servers and crash situations.
+	if the crash happens during the consensus phase, no harm is done. We are only looking at the accept phase as it here there will be some issues that need to be resolved
+
+=====================================================================================================
+assignment 4
+- use the second cluster as it is more powerful
+- get kubeflow up and running; github.com/kubeflow/manifests -> we can use 1.7/1.8 it doest matter. 
+- use kustmization.yaml file as a gateway to all yaml files we have
+
+after we have kubeflow
+	we have to setup a load balancer, (metalLB) to setup the load balancer -> change the service from clusterib to load balancer. 
+	once we have an external ip; we have to setup a certificate; we should be able to hit the ip and get like a authentication page to enter username and password
+
+once we log in
+	create a notebook 
+get our ML model working; then jump into
+
+we will alsi need to go setup a storage class; the pvc stuff
+
+we need a trident backend
+	JSON way : ignore this way
+	native kubernetes way : do this way; these point to some svm's which are exposed to clients
+
+	build an SVM using netapp OR the gateway curtis built(install the operator, create a CR and it will generate svm for me). use NFS. we will then need a backend config(above); and then a secret(the login); use the tridentbackendconfig to define the storage drivers if we are using NFS; define a storage class that ties to the storage class driver; then you can create PV claims which are tied to PVs
+
+========================================= dc assignment 4-=========================================================================
+
+1. run all yamls from 1 to 7 -> copy and keep in 8.txt
+2. chcek what to change in yamls 1 to 7
+
+authservice just showing pending; kubeflow shows a couple of things pending even after 10m and has 	crashloopbackoff errors; 
+========================================= classes ==========================================================================================
+
+April 30 : CAP THEOREM : not in the tetxbook
+
+distributed system providing shared data can follow only 2 out of 3 propoerties; consistency (write it at a place and it is propapgated everywhere), availability (any update req coming from the client is always executed, a request is not denied by the system), tolerating paritioning (even when there is a partition, the system still works)
+
+in A-P and C-P; thye are paritioned, in the first one allow both of them to go ahead, in the second one, allow only one of them to go ahead. in A-C; if they are consistent then they cant afford to not talk to each other. 
+
+when C-P and sacrifice A; we are guaranteeing atomic read writes by refusing some requests; if the request comes to a partition with no master node dont accept the request. If there is a master ndoe in the partition then accept the request
+
+when A-P is chosen we acept all the requests but we need to handle the inconsistencies in some way or the other. shopping cart and web caching is a great example of this. 
+
+Asynchronous network-Impossibility result : 
+	- the point where mesages are lost implies partioning
+	- the process group G is partioning into G1(P) and G2(Q) and any message between P and Q is lost. 
+	- alpha (a sequence of read write operations) cna be imagined to be a string. alpha is broken into alpa1 and alpha2. alpha1 + alpha2 = alpha, we are just cutting it somehwere. the last write message in alpha1 is write(o,v1). the last execution in alpha2 is read(o). 
+	- during alpha2, there is no message exchanged and sicne it is available we have to accept all read and writes and they must be successful. for the nodes in G2, it is impossible to predict the existence of alpha1, for them it does not exist. the read operation will be honored and will return vo.
+	- the read after my write will be called atomic iff until my write has finished and the read is happening after the write(write is propagated to all nodes); here the read is happening before the write is completed thus this is not atomic.
+	- CONTRADICTION
+
+	Corollary : the availability and stomic consistency even when no messages are lost in an asynchronous network model. in an async model there is no gloabl clock; every process works with their local clock and as we know it is impossible to distinguish b/w delay and loss of message. 
+	- since it cant distniguish bw delay and loss, if this algo exists then it would be able perfectly fit the theorem above which is not possible. we model the message loss in the above theorem as an arbitrarily long delay in this case.
+
+WHat does this signify?
+	as a designer we have to look at the end goal of the product and choose what is more suited. we also have to plan for a proper recovery mechanism, make it such that there is evential consistency after the recovery. 
+
+Recovery  : in the textbook
+	- forward state : go to a state where everything will be fine (we ahve to predict the next state and after recovery go to that state). say it fails during 2+3; when recovering apply the addition and after recovery the value should be 5
+	- backward state : go to a state that was stable before the system failed. after recoevery you have to redo the operation it failed during. This is done using rollbacks/checkpoints
+
+	- each process tores its state in its local storage (checkpoint) 
+
+	How to save state and restart
+		- give a sigusr2 to interrupt the process; take snapshot of the memory and save it in the disk. This happens suring the signal handler routine.   
+
+<take from textbook>
+
+- examples of consistent snapshots
+	1. snapshot a is coordinated and bcd are not. 
+		snapshot a : consistent; during receovery if we look at all the sent messages that re not received, we can coevr to a consistent state. has a send without corresponding receive ehcih can be fixed
+		snapshot c : incocnsistent; it has a receive without a send. 		
+		snapshot b : is consistent (strong conisstency as we dont have to fix anything. "a" is not strong but can be receovered, c cannot be recoevered)
+
+		to implement receovery a receive without a send; there needs to be a guarantee that the source is provided in the message being sent otherwise it cannot be recovered. 
+
+====================================================================================================================================================
+Here are some questions based on PFS (Primary-Backup-Failover) concepts, in the same format as your provided PDF:
+
+**Question 1: Coordination**
+
+Consider a distributed system with three nodes A, B, and C. Node A acts as the primary node responsible for maintaining a shared counter variable. Nodes B and C act as backup nodes ready to take over if something goes wrong with Node A.
+
+What would happen if all three nodes need to agree on incrementing the shared counter by 1?
+
+**Answer**
+
+The system would use a consensus algorithm, such as Paxos or Raft, to ensure that only one node (in this case, Node A) is chosen to perform the operation. The other two nodes would remain in standby mode until Node A completes its task.
+
+**Question 2: Consistency**
+
+In the same distributed system, suppose Node B writes a new value for the shared counter variable without consulting with Node A or C. What could happen if Node A and C then try to read the current value of the counter?
+
+**Answer**
+
+The system would experience consistency issues because each node may have different values for the shared counter variable. To resolve this, we could use an eventual consistency model where nodes periodically synchronize their state
+.
+**Question 3: Fault Tolerance**
+
+Suppose Node A fails and all backup nodes (B and C) also fail simultaneously. What would happen if a new primary node needs to be elected?
+
+**Answer**
+
+The system would need to have additional backup nodes ready to take over in case of such failures. We could use a quorum-based approach where at least two-thirds of the total number of nodes are required to agree on any action before it is taken.
